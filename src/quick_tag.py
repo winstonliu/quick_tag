@@ -3,6 +3,12 @@ import sys, json
 
 from read_logs import *
 
+# Where forward is in the image
+CAMERA_FWD = "bottom"
+
+# 130 in Alma
+ALTITUDE_CORRECTION = 172
+
 def get_interesting_images(sloth_data):
     # List of annotated image
     return [d for d in sloth_data if d['annotations'] != []]
@@ -22,6 +28,6 @@ if __name__=="__main__":
     # Filter for interesting mavlink messages
     mavlink_filter = [float(k['time']) for k in gps_data]
     mavlink_datatypes = ["mavlink_global_position_int_t", "mavlink_attitude_t"]
-    mavlink_data = read_mavlink(sys.argv[2], mavlink_filter, mavlink_datatypes)
+    mavlink_data, mavlink_ref = read_mavlink(sys.argv[2], mavlink_filter, mavlink_datatypes)
 
-    print mavlink_data['mavlink_attitude_t'][0]
+    print mavlink_ref

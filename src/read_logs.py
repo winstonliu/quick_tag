@@ -18,7 +18,8 @@ def mav_to_dict(rowinfo):
     keyname = None
     for elem in rowinfo[10:]:
         if keyname == None:
-            keyname = elem else:
+            keyname = elem
+        else:
             data[keyname] = elem
             keyname = None
 
@@ -54,13 +55,20 @@ def read_gps_log(filename, filter_list):
 def read_mavlink(filename, filter_times=[], filter_types=[]):
     """! Read in CSV files and return list of contents. """
     output_list = {'mavlink_global_position_int_t' : [], 'mavlink_attitude_t' : [] }
+    reference_pos = {}
     idx = 0
     with open(filename, 'rb') as csvfile:
         cr = csv.reader(csvfile, delimiter=",")
 
         # Do some initial checks to make sure the filtered times are ok
 
+        found_first = False
         for r in cr:
+            # Take the first GPS position for reference
+            if found_first == False and r[9] == "mavlink_global_position_int_t":
+                found_first = True
+                reference_pos = mav_to_dict(r)
+
             # Item 10 is the mavlink type
             if not r[9] in filter_types:
                 continue
@@ -73,7 +81,7 @@ def read_mavlink(filename, filter_times=[], filter_types=[]):
 
                 if idx == len(filter_times): break
 
-    return output_list
+    return (output_list, reference_pos)
 
 def convert_mav_time_to_epoch(mav_time):
     pattern = "%Y-%m-%dT%H:%M:%S.%f"
