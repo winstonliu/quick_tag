@@ -45,7 +45,9 @@ def read_gps_log(filename, filter_list):
         for row in csvreader:
             # Take advantage of the fact that filter_list is ordered
             if row[0] == filter_list[idx]:
-                output_list.append(gps_to_dict(*row))
+                current_dict = gps_to_dict(*row)
+                current_dict["time"] = long(float(current_dict["time"]) * 1e3)
+                output_list.append(current_dict)
                 idx += 1
 
                 if idx == len(filter_list): break
@@ -56,7 +58,8 @@ def read_mavlink(filename, filter_times=[], filter_types=[]):
     """! Read in CSV files and return list of contents. """
     output_list = {'mavlink_global_position_int_t' : [], 'mavlink_attitude_t' : [] }
     reference_pos = {}
-    idx = 0
+    found_filters = numpy.zeros((len(filter_types),), dtype=numpy.int)
+    idx = 1
     with open(filename, 'rb') as csvfile:
         cr = csv.reader(csvfile, delimiter=",")
 
@@ -70,14 +73,17 @@ def read_mavlink(filename, filter_times=[], filter_types=[]):
                 reference_pos = mav_to_dict(r)
 
             # Item 10 is the mavlink type
-            if not r[9] in filter_types:
+            if not r[9] in filter_types or found_filters[filter_types.index(r[9])] >= idx:
                 continue
 
             r[0] = convert_mav_time_to_epoch(r[0])
 
             if r[0] > filter_times[idx]:
                 output_list[r[9]].append(mav_to_dict(r))
-                idx += 1
+                found_filters[filter_types.index(r[9])] += 1
+
+                if found_filters.sum() == idx * len(filter_types):
+                    idx += 1
 
                 if idx == len(filter_times): break
 
@@ -85,4 +91,6 @@ def read_mavlink(filename, filter_times=[], filter_types=[]):
 
 def convert_mav_time_to_epoch(mav_time):
     pattern = "%Y-%m-%dT%H:%M:%S.%f"
-    return time.mktime(time.strptime(mav_time, pattern))
+    ms = int(mav_time.split(".")[1])
+    seconds = time.mktime(time.strptime(mav_time, pattern)) * 1e3
+    return long(seconds + ms)
