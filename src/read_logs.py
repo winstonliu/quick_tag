@@ -6,7 +6,8 @@ import numpy
 def gps_to_dict(img_tag, lat, lon, alt, heading, time):
     return {
             'img': img_tag,
-            'pos': numpy.array([lat, lon]),
+            'lat': lat,
+            'lon': lon,
             'alt': alt,
             'heading ': heading,
             'time': time

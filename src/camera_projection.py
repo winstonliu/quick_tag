@@ -17,7 +17,8 @@ Ox = 2048
 Oy = 1536
 
 # Pixel ratio (px/m)
-mxy = 1 / 6e-6
+px_size = 6e-6
+mxy = 1 / px_size
 # Focal length (m)
 f = 35e-3
 
@@ -26,6 +27,27 @@ K = numpy.matrix(
        [[ f*mxy, 0    , Ox , 0],
         [ 0    , f*mxy, Oy , 0],
         [ 0    , 0    , 1  , 0]])
+
+def dead_simple_offset(camera_x, camera_y, yaw, alt):
+    x_m, y_m = calculate_pixel_offset(camera_x, camera_y, alt)
+    print x_m, y_m
+
+    # Sketchy frame switching
+    point_mat = numpy.matrix([[x_m, y_m, 0, 0]])
+
+    rotation_mat = euler_matrix(0,0,yaw)
+
+    return point_mat * camera_to_world_tf() * rotation_mat
+
+
+def calculate_pixel_offset(x, y, altitude):
+    width_x = 2 * altitude * Ox * px_size / f
+    width_y = 2 * altitude * Oy * px_size / f
+    
+    x_m = x / float(max_x) * width_x
+    y_m = y / float(max_y) * width_y
+
+    return (x_m, y_m)
 
 DIST_AT_EQUATOR =  111321
 def convert_lat_lon_to_m(d_lat, d_lon, original_lat):
@@ -86,7 +108,20 @@ def world_to_camera_frame():
     yaw = math.radians(-90)
 
     # Apply rotation with rotating axis in order yaw, pitch, roll
-    return euler_matrix(roll, 0, yaw, 'rzyx')
+    return numpy.asmatrix(euler_matrix(roll, 0, yaw, 'rzyx'))
+
+
+def camera_to_world_tf():
+    """ Assuming y-axis in camera frame is towards the bottom of the image and pointing in the
+            direction of travel.
+        
+    """
+
+    roll = math.radians(-180)
+    yaw = math.radians(90)
+
+    # Apply rotation with rotating axis in order roll, pitch, yaw
+    return numpy.asmatrix(euler_matrix(roll, 0, yaw, 'rxyz'))
 
 
 def world_coordinate_calculation(xy, R_inv):
