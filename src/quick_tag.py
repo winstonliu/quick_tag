@@ -6,15 +6,13 @@ Using formulas from http://www.epixea.com/research/multi-view-coding-thesisse8.h
 """
 
 import sys, json
+import csv
 
 from read_logs import *
 from camera_projection import *
 
 # Which way forward is in the image
 CAMERA_DIR = "bottom"
-
-# 130 in Alma
-ALTITUDE_CORRECTION = 172
 
 def get_interesting_images(sloth_data):
     # List of annotated image
@@ -43,34 +41,34 @@ if __name__=="__main__":
         mavlink_ref[key] = float(mavlink_ref[key]) / 1e7
     mavlink_ref["relative_alt"] = float(mavlink_ref["relative_alt"])
 
-    for i in range(len(mavlink_data["mavlink_global_position_int_t"])):
-        image = annotated_img[i]['filename']
-        # Latitude is degrees * 1e7
-        lat = float(gps_data[i]["lat"])
-        lon = float(gps_data[i]["lon"])
-        alt = float(mavlink_data["mavlink_global_position_int_t"][i]["relative_alt"])
+    with open("output.csv", "ab") as writecsv:
+        mywriter = csv.writer(writecsv, delimiter=",")
+        for i in range(len(mavlink_data["mavlink_global_position_int_t"])):
+            image = annotated_img[i]['filename']
+            # Latitude is degrees * 1e7
+            lat = float(gps_data[i]["lat"])
+            lon = float(gps_data[i]["lon"])
+            alt = float(mavlink_data["mavlink_global_position_int_t"][i]["relative_alt"])
 
-        z = (alt - mavlink_ref["relative_alt"]) / 1e3
+            z = (alt - mavlink_ref["relative_alt"]) / 1e3
 
-        print "Alt = ", z
+            print "Alt = ", z
 
-        roll = float(mavlink_data["mavlink_attitude_t"][i]["roll"])
-        pitch = float(mavlink_data["mavlink_attitude_t"][i]["pitch"])
-        yaw = float(mavlink_data["mavlink_attitude_t"][i]["yaw"])
+            roll = float(mavlink_data["mavlink_attitude_t"][i]["roll"])
+            pitch = float(mavlink_data["mavlink_attitude_t"][i]["pitch"])
+            yaw = float(mavlink_data["mavlink_attitude_t"][i]["yaw"])
 
-        # Construct pixel information
+            # Construct pixel information
 
-        for px in annotated_img[i]['annotations']:
-            goosespecies = px['class']
+            for px in annotated_img[i]['annotations']:
+                goosespecies = px['class']
 
-            u = float(px["x"])
-            v = float(px["y"])
+                u = float(px["x"])
+                v = float(px["y"])
 
-            px_x, px_y = pixel_to_camera(u,v, CAMERA_DIR)
-            offset = numpy.squeeze(numpy.asarray(dead_simple_offset(px_x, px_y, yaw, z)))
-            
-            print offset
+                px_x, px_y = pixel_to_camera(u,v, CAMERA_DIR)
+                offset = numpy.squeeze(numpy.asarray(dead_simple_offset(px_x, px_y, yaw, z)))
+                geolon, geolat = convert_m_to_lat_lon(offset[0], offset[1], lat, lon)
 
-            geolon, geolat = convert_m_to_lat_lon(offset[0], offset[1], lat, lon)
-
-            print image, geolon, geolat
+                print image, geolon, geolat
+                mywriter.writerow([image, geolon, geolat, int(px["x"]), int(px["y"])])
