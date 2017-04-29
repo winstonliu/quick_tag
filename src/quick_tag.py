@@ -7,9 +7,11 @@ Using formulas from http://www.epixea.com/research/multi-view-coding-thesisse8.h
 
 import sys, json
 import csv
+from nest_check import lat_lon_closeness
 
 from read_logs import *
 from camera_projection import *
+
 
 # Which way forward is in the image
 CAMERA_DIR = "bottom"
@@ -41,7 +43,8 @@ if __name__=="__main__":
         mavlink_ref[key] = float(mavlink_ref[key]) / 1e7
     mavlink_ref["relative_alt"] = float(mavlink_ref["relative_alt"])
 
-    with open("output.csv", "ab") as writecsv:
+    list_of_nests = []
+    with open("output.csv", "wb") as writecsv:
         mywriter = csv.writer(writecsv, delimiter=",")
         for i in range(len(mavlink_data["mavlink_global_position_int_t"])):
             image = annotated_img[i]['filename']
@@ -70,5 +73,5 @@ if __name__=="__main__":
                 offset = numpy.squeeze(numpy.asarray(dead_simple_offset(px_x, px_y, yaw, z)))
                 geolon, geolat = convert_m_to_lat_lon(offset[0], offset[1], lat, lon)
 
-                print image, geolon, geolat
-                mywriter.writerow([image, geolon, geolat, int(px["x"]), int(px["y"])])
+                print image, geolon, geolat, goosespecies
+                mywriter.writerow([goosespecies, image, geolon, geolat, int(px["x"]), int(px["y"])])
