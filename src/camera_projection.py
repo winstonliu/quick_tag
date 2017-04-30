@@ -30,14 +30,14 @@ K = numpy.matrix(
 
 def dead_simple_offset(camera_x, camera_y, yaw, alt):
     x_m, y_m = calculate_pixel_offset(camera_x, camera_y, alt)
-    print x_m, y_m
 
     # Sketchy frame switching
-    point_mat = numpy.matrix([[x_m, y_m, 0, 0]])
+    point_mat = numpy.array([[x_m, y_m, 0, 0]])
 
-    rotation_mat = euler_matrix(0,0,yaw)
+    rotation_mat = euler_matrix(0,0,yaw, 'sxyz')
+    static_tf_camera_to_world = euler_matrix(0,0,math.radians(90), 'sxyz')
 
-    return point_mat * camera_to_world_tf() * rotation_mat
+    return numpy.dot(numpy.dot(numpy.dot(point_mat, camera_to_world_tf()), rotation_mat), static_tf_camera_to_world)
 
 
 def calculate_pixel_offset(x, y, altitude):
@@ -53,14 +53,14 @@ DIST_AT_EQUATOR =  111321
 def convert_lat_lon_to_m(d_lat, d_lon, original_lat):
     # Convert lon to m, assuming lat lon in deg, alt in m
     # Using small angle theorem (assume a flat earth)
-    y = d_lat * DIST_AT_EQUATOR
-    x = d_lon * math.cos(original_lat) * DIST_AT_EQUATOR
+    y = float(d_lat) * DIST_AT_EQUATOR
+    x = float(d_lon) * math.cos(original_lat) * DIST_AT_EQUATOR
 
     return (x, y)
 
-def convert_m_to_lat_lon(x,y, original_lon, original_lat):
-    lat = y / DIST_AT_EQUATOR + original_lat
-    lon = x / (DIST_AT_EQUATOR * math.cos(lat)) + original_lon
+def convert_m_to_lat_lon(x,y, original_lat, original_lon):
+    lat = float(y) / DIST_AT_EQUATOR + original_lat
+    lon = float(x) / (DIST_AT_EQUATOR * math.cos(lat)) + original_lon
 
     return (lon, lat)
 

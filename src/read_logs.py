@@ -70,8 +70,9 @@ def read_mavlink(filename, filter_times=[], filter_types=[]):
         for r in cr:
             # Take the first GPS position for reference
             if found_first == False and r[9] == "mavlink_global_position_int_t":
-                found_first = True
                 reference_pos = mav_to_dict(r)
+                if abs(long(reference_pos["lat"]) / 1e7) > 0 and abs(long(reference_pos["lon"]) / 1e7) > 0:
+                    found_first = True
 
             # Item 10 is the mavlink type
             if not r[9] in filter_types or found_filters[filter_types.index(r[9])] >= idx:
